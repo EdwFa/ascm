@@ -1,7 +1,8 @@
 from ascm import clean, loc, text as T, atoms as A, tokens
 
 def test_cleaner_removes_watermark_and_fixes_ligatures():
-    raw = "Downloaded from ascopubs.org by 10.0.0.1 on May 1, 2025\nThe classiﬁcation is clear.\n\x04 First point.\n\x04 Second point.\nReferences\n1. Foo\n" + "x\n" * 5
+    raw = ("Downloaded from ascopubs.org by 10.0.0.1 on May 1, 2025\nThe classi\ufb01cation is clear.\n\x04 First point.\n\x04 Second point.\n"
+           + "Body line number one.\n" * 10 + "References\n1. Foo\n2. Bar\n")
     out = clean.clean_pdf_text(raw)
     assert "Downloaded" not in out and "10.0.0.1" not in out
     assert "classification" in out and "ﬁ" not in out
