@@ -107,6 +107,22 @@ def run_methods(d: dict, tau: int, params: dp.Params, E_sent, methods=None):
     return out
 
 
+def strip_structure(d: dict, mode: str = 'full') -> dict:
+    """Simulate documents with weak structure for the methods (evaluation still uses the original structure).
+    'no_headings': section numbers, headings and 'Комментарии' markers are hidden.
+    'flat': additionally all paragraph breaks are hidden. Protected boundaries F and atoms are unchanged."""
+    if mode == 'full':
+        return d
+    S = []
+    for s in d['sentences']:
+        t = dict(s)
+        t['sec_level'], t['comment'], t['heading'] = 0, False, False
+        if mode == 'flat':
+            t['para'] = 0
+        S.append(t)
+    return {**d, 'sentences': S}
+
+
 def evaluate_chunking(d: dict, starts, tau, t_max, E_eval):
     S = d['sentences']
     tokens = [s['tokens'] for s in S]
