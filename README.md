@@ -12,7 +12,8 @@
 ```bash
 python -m pip install -r requirements.txt
 python scripts/build_corpus.py                         # предложения, F, атомы -> data/processed, results/corpus_stats.csv
-python -m pytest -q                                    # 35 тестов, в т.ч. ДП = полный перебор
+python -m pytest -q
+# 35 тестов, в т.ч. ДП = полный перебор
 python scripts/run_experiment.py                       # отладка: офлайн-эмбеддинги hash (НЕ для статьи)
 python scripts/make_seed_passages.py                   # заготовки для врачей -> results/annotation/
 ```
@@ -21,7 +22,7 @@ python scripts/make_seed_passages.py                   # заготовки дл
 
 ```bash
 python scripts/build_corpus.py --tokenizer bge-m3
-python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5 --tokenizer bge-m3
+python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5
 ```
 
 Чанкер использует BGE-M3, метрика SCS считается другой моделью (multilingual-e5-large), чтобы избежать круговой зависимости.
@@ -46,5 +47,5 @@ python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5 --tokenize
 - Все методы запускаются, ASCM и B7 дают 0 нарушений F. **ERL = 100% у методов с F по построению**, это не независимый результат; независимая проверка F на выборке вручную нужна.
 - Числа, полученные с `--embedder hash`, служат только для проверки кода.
 - Не реализовано: B5 parent-document, B6 TextTiling, EPR (нужен детектор сущностей UMLS/SNOMED), подбор весов Φ на dev-документах (нужны вопросы), генерация и оценка ответов.
-- Токены по умолчанию оцениваются словесной прокси; для статьи пересоберите корпус с токенизатором BGE-M3.
+- Токены по умолчанию оцениваются словесной прокси; для статьи собирайте корпус с `--tokenizer bge-m3` (208 106 токенов, максимальный атом 651).
 - Сегментатор правиловый: сокращения из списка (`мг.`, `см.` и т.п.) не считаются концом предложения.

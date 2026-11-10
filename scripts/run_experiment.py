@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Run all chunking methods on all documents; write results/chunk_metrics.csv and results/summary.csv.
 Offline debug:  python scripts/run_experiment.py --embedder hash --eval-embedder hash4
-Paper run:      python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5 --tokenizer bge-m3
-(the corpus must be rebuilt with the same --tokenizer via build_corpus.py)"""
+Paper run:      python scripts/build_corpus.py --tokenizer bge-m3
+                python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5
+(token counts come from data/processed, so the tokenizer is chosen in build_corpus.py)"""
 import argparse, glob, json, os, sys
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
