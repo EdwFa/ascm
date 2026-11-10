@@ -6,12 +6,13 @@ from . import atoms as A, baselines as B, dp, metrics as M, loc as L
 from .embed import cached_encode, unit_mean, center
 
 
-def process_document(raw: str, count_tokens) -> dict:
-    norm, S = A.build_sentences(raw, count_tokens)
+def process_document(raw: str, count_tokens, lang: str = 'ru', family: str = 'ru_uur', meta: dict | None = None) -> dict:
+    norm, S = A.build_sentences(raw, count_tokens, lang, family)
     prot, why = A.protected_boundaries(S)
     atoms = A.build_atoms(S, prot)
     d = A.to_json(norm, S, prot, why, atoms)
     d['pairs'] = A.loc_pairs(S)
+    d['meta'] = {**(meta or {}), 'lang': lang, 'family': family}
     return d
 
 

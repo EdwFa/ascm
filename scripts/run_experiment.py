@@ -15,6 +15,7 @@ ap.add_argument('--proc', default='data/processed'); ap.add_argument('--config',
 ap.add_argument('--embedder', default='hash'); ap.add_argument('--eval-embedder', default='hash4')
 ap.add_argument('--out', default='results'); ap.add_argument('--cache', default='results/cache')
 ap.add_argument('--tau', type=int, nargs='*')
+ap.add_argument('--lang', default='all', choices=['all', 'ru', 'en'], help='restrict to documents of one language')
 ap.add_argument('--structure', default='full', choices=['full', 'no_headings', 'flat'],
                 help='hide document structure from the methods (evaluation keeps the real structure)')
 a = ap.parse_args()
@@ -27,6 +28,8 @@ rows = []
 for f in sorted(glob.glob(os.path.join(a.proc, '*.json'))):
     slug = os.path.basename(f)[:-5]
     d = pipeline.load_document(a.proc, slug)
+    if a.lang != 'all' and d.get('meta', {}).get('lang', 'ru') != a.lang:
+        continue
     texts = [s['text'] for s in d['sentences']]
     E = cached_encode(emb, texts, a.cache); Ee = cached_encode(emb_eval, texts, a.cache)
     for tau in taus:
@@ -53,7 +56,8 @@ for tau, g in df.groupby('tau'):
     for m, gm in g.groupby('method'):
         row = dict(tau=tau, method=m)
         for k in metrics:
-            mean, lo, hi = stats.cluster_bootstrap_ci(gm.sort_values('doc')[k].values)
+            v = gm.sort_values('doc')[k].dropna().values
+            mean, lo, hi = stats.cluster_bootstrap_ci(v) if len(v) else (float('nan'),) * 3
             row.update({k: mean, k + '_lo': lo, k + '_hi': hi})
         summ.append(row)
 summ = pd.DataFrame(summ)
@@ -61,14 +65,15 @@ tests = []
 for tau, g in df.groupby('tau'):
     asc = g[g.method == 'ASCM'].sort_values('doc')
     for k in ['erl_block', 'scs', 'sec_cross', 'comment_sep']:
-        ps, names = [], []
+        ps, names, diffs = [], [], []
         for m in g.method.unique():
             if m == 'ASCM': continue
-            other = g[g.method == m].sort_values('doc')
-            ps.append(stats.paired_permutation_p(asc[k].values - other[k].values)); names.append(m)
-        for n, p, ph in zip(names, ps, stats.holm(ps)):
-            tests.append(dict(tau=tau, metric=k, baseline=n, p=p, p_holm=ph,
-                              diff=float((asc[k].values - g[g.method == n].sort_values('doc')[k].values).mean())))
+            other = g[g.method == m].set_index('doc')[k]
+            dd = (asc.set_index('doc')[k] - other).dropna()
+            if len(dd) < 2: continue
+            ps.append(stats.paired_permutation_p(dd.values)); names.append(m); diffs.append(float(dd.mean()))
+        for n, p, ph, df_ in zip(names, ps, stats.holm(ps), diffs):
+            tests.append(dict(tau=tau, metric=k, baseline=n, p=p, p_holm=ph, diff=df_))
 summ.to_csv(os.path.join(a.out, f'summary{suffix}.csv'), index=False)
 pd.DataFrame(tests).to_csv(os.path.join(a.out, f'tests{suffix}.csv'), index=False)
 pd.set_option('display.width', 200)

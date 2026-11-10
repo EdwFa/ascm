@@ -1,0 +1,15 @@
+slug,path,pdf,lang,family,kind,publisher,licence_note,role,notes
+breast,data/raw/breast.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+colon,data/raw/colon.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+dtc,data/raw/dtc.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+esophagus,data/raw/esophagus.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+gastric,data/raw/gastric.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+mtc,data/raw/mtc.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+pancreas,data/raw/pancreas.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+rectal,data/raw/rectal.md,,ru,ru_uur,guideline,Minzdrav RF,official document,dev,
+esmo_biliary,data/raw_en/esmo_biliary.txt,Biliary_tract_cancer.pdf,en,esmo,guideline,ESMO (Annals of Oncology 2023),copyright: check before sharing,test,"evidence markers [III, A] inline"
+asco_anal,data/raw_en/asco_anal.txt,Systemic_Therapy_for_Stage_I-III_Anal_Squamous_Cell_Carcinoma.pdf,en,asco,guideline,ASCO (JCO 2025),copyright: all rights reserved,test,"(Evidence quality: X; Strength of recommendation: Y) after the recommendation"
+asco_hcc,data/raw_en/asco_hcc.txt,Systemic_Therapy_for_Advanced_Hepatocellular_Carcinoma.PDF,en,none,guideline_summary,ASCO (JCO 2025),copyright: all rights reserved,test,"6-page Clinical Insights; evidence quality and strength are letter codes in a table column (M/L and S/W): not detected, no ERL pairs"
+eras_korea,data/raw_en/eras_korea.txt,The_2024_Korean_Enhanced_Recovery_After_Surgery_ERAS_guidelines_for_colorectal_cancer.pdf,en,eras,guideline,Korean Society of Coloproctology (Ann Coloproctol 2025),CC BY-NC 4.0,test,"Strength of the recommendation / Level of evidence lines after each recommendation"
+igpath_polyp,data/raw_en/igpath_polyp.txt,Pathology_of_the_malignant_colorectal_polyp.pdf,en,none,position_paper,Italian Group of GI Pathologists (Dig Liver Dis 2025),CC BY-NC-ND 4.0 (no derivatives: check),test,"recommendations without evidence grades; no ERL pairs"
+thyroid_review,data/raw_en/thyroid_review.txt,Thyroid_Cancer_-_5.pdf,en,none,review,MDPI (Int J Mol Sci 2025),open access: check licence,test,"narrative review, not a guideline: no recommendations or evidence grades; use only for chunk-size and structure metrics"

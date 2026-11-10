@@ -31,3 +31,24 @@ def count_matches(text: str) -> tuple[int, int]:
     """(tolerant matches, anchors) in a whole document."""
     t = _norm(text)
     return len(PATTERN.findall(t)), len(ANCHOR.findall(t))
+
+
+# ---- evidence families -------------------------------------------------------------------------------------------
+# kind 'sep'   : the evidence statement starts its own sentence (Russian УУР/УДД line, ASCO '(Evidence quality: ...)', ERAS lines)
+# kind 'inline': the marker sits inside the recommendation sentence (ESMO '[III, A]')
+_ESMO = re.compile(r'\[\s*[IV]{1,3}\s*,\s*[A-E]\s*(?:;[^\]]{0,80})?\]')
+_ASCO = re.compile(r'\(\s*Evidence\s+quality\s*:\s*[A-Za-z ]+;\s*Strength\s+of\s+recommendation\s*:\s*[A-Za-z ]+\)', re.I)
+_ERAS = re.compile(r'(?:Strength of the recommendation|Level of evidence)\s*:', re.I)
+FAMILIES = {'ru_uur': None, 'esmo': _ESMO, 'asco': _ASCO, 'eras': _ERAS, 'none': None}
+
+
+def evidence_kind(sentence: str, family: str) -> str:
+    """'' if the sentence carries no evidence statement, otherwise 'sep' or 'inline'."""
+    if family == 'none':
+        return ''
+    if family == 'ru_uur':
+        return 'sep' if ANCHOR.search(sentence) else ''
+    m = FAMILIES[family].search(sentence)
+    if not m:
+        return ''
+    return 'sep' if m.start() <= 2 else 'inline'
