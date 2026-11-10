@@ -9,12 +9,15 @@ ap = argparse.ArgumentParser()
 ap.add_argument('--proc', default='data/processed'); ap.add_argument('--per-doc', type=int, default=30)
 ap.add_argument('--plain-per-doc', type=int, default=6); ap.add_argument('--seed', type=int, default=13)
 ap.add_argument('--out', default='results/annotation/seed_passages.csv')
+ap.add_argument('--lang', default='all', choices=['all', 'ru', 'en'])
 a = ap.parse_args()
 rnd = random.Random(a.seed)
 rows = []
 for f in sorted(glob.glob(os.path.join(a.proc, '*.json'))):
     slug = os.path.basename(f)[:-5]
     d = pipeline.load_document(a.proc, slug); S = d['sentences']
+    if a.lang != 'all' and d.get('meta', {}).get('lang', 'ru') != a.lang:
+        continue
     pairs = d['pairs']; rnd.shuffle(pairs)
     for p in pairs[:a.per_doc]:
         blk = [S[k] for k in p['block']]; l = S[p['loc']]
