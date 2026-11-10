@@ -48,3 +48,12 @@ def test_all_variants_respect_F():
     res = pipeline.run_methods(d, 64, dp.Params(tau_star=64, t_max=96), E)
     for name in ('ASCM', 'ASCM_basic', 'ASCM_struct', 'ASCM_center', 'B7_greedy'):
         assert not any(d['protected'][j] for j in res[name] if j < len(d['protected']))
+
+def test_header_atoms_cuts_at_sections_and_respects_cap():
+    from ascm import baselines as B
+    tok = [100] * 12
+    sec = [False] * 12; sec[4] = sec[9] = True
+    st = B.header_atoms(tok, sec, 250, 380)
+    assert 4 in st and 9 in st and st[0] == 0
+    b = st + [12]
+    assert all(sum(tok[b[k]:b[k + 1]]) <= 380 for k in range(len(st)))

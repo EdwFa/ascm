@@ -35,7 +35,7 @@ python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5
 | `src/ascm/loc.py` | устойчивый детектор «Уровень убедительности рекомендаций … (уровень достоверности доказательств …)» |
 | `src/ascm/atoms.py` | предложения, защищённые границы F, атомы, пары «рекомендация – УУР/УДД» |
 | `src/ascm/dp.py` | функция стоимости Φ, точное ДП, жадная B7, перебор для тестов |
-| `src/ascm/baselines.py` | B1 fixed, B2 recursive, B3 semantic, B4 header, ablation atom-fill |
+| `src/ascm/baselines.py` | B1 fixed, B2 recursive, B3 semantic, B4 header, B8 header+F (по заголовкам с защитой F), ablation atom-fill |
 | `src/ascm/metrics.py` | размеры чанков, ERL, разрезанные списки, нарушения F, SCS |
 | `src/ascm/stats.py` | кластерный бутстрап по документам, перестановочный тест, поправка Холма |
 | `src/ascm/retrieval.py` | span recall, Hit, MRR, evidence-linked recall (когда будут вопросы) |

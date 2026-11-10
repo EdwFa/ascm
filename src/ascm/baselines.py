@@ -66,3 +66,15 @@ def atom_fill(atom_tokens, tau):
             cur = 0
         cur += t
     return starts
+
+
+def header_atoms(atom_tokens, section_start, tau, t_max):
+    """B8: header-based chunking that respects F. A chunk starts at every section start; sections larger than tau are packed
+    from atoms. Returns atom-level starts."""
+    starts, cur = [0], 0
+    for a, t in enumerate(atom_tokens):
+        if a and (section_start[a] or cur >= tau or (cur + t > t_max and cur > 0)):
+            starts.append(a)
+            cur = 0
+        cur += t
+    return starts

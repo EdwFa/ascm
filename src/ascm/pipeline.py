@@ -83,7 +83,7 @@ def run_methods(d: dict, tau: int, params: dp.Params, E_sent, methods=None):
         c_sem, c_struct = dp.boundary_inputs(E_a, struct)
         return dp.CostModel(tok_a, E_a, c_sem, c_struct, p), tok_a
 
-    want = methods or ['B1_fixed', 'B2_recursive', 'B3_semantic', 'B4_header', 'B7_greedy', 'F_atom_fill',
+    want = methods or ['B1_fixed', 'B2_recursive', 'B3_semantic', 'B4_header', 'B7_greedy', 'B8_header_F', 'F_atom_fill',
                        'ASCM_basic', 'ASCM_struct', 'ASCM_center', 'ASCM']
     out = {}
     if 'B1_fixed' in want: out['B1_fixed'] = B.fixed_size(tokens, tau)
@@ -92,6 +92,9 @@ def run_methods(d: dict, tau: int, params: dp.Params, E_sent, methods=None):
     if 'B4_header' in want: out['B4_header'] = B.header_based(tokens, heading, tau, p.t_max)
     cm_full, tok_a = make_cm(*VARIANTS['ASCM'])
     if 'B7_greedy' in want: out['B7_greedy'] = to_sent(dp.greedy(cm_full))
+    if 'B8_header_F' in want:
+        sec = [bool(S[a[0]].get('sec_level', 0)) for a in atoms]
+        out['B8_header_F'] = to_sent(B.header_atoms(tok_a, sec, tau, p.t_max))
     if 'F_atom_fill' in want: out['F_atom_fill'] = to_sent(B.atom_fill(tok_a, tau))
     for name, (centre, mode) in VARIANTS.items():
         if name in want:
