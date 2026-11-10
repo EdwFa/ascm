@@ -81,6 +81,6 @@ summ = pd.DataFrame(summ)
 summ.to_csv(os.path.join(a.out, f'retrieval_summary{sfx}.csv'), index=False)
 pd.DataFrame(tests).to_csv(os.path.join(a.out, f'retrieval_tests{sfx}.csv'), index=False)
 pd.set_option('display.width', 200)
-show = summ[summ.tau == taus[min(1, len(taus) - 1)]]
-print(show[['budget', 'method', 'n_docs', 'n_questions', 'evidence_possible', 'evidence_linked', 'hit', 'mrr', 'context_precision']].round(3).to_string(index=False))
+show = summ.sort_values(['tau', 'budget', 'method'])
+print(show[['tau', 'budget', 'method', 'n_docs', 'n_questions', 'evidence_possible', 'evidence_linked', 'hit', 'mrr', 'context_precision']].round(3).to_string(index=False))
 print('\nIMPORTANT: question set is', os.path.basename(a.questions), '- check its source (synthetic vs physician) before quoting any number.')
