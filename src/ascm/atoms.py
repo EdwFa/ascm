@@ -1,0 +1,80 @@
+"""Build sentences, protected boundaries F and atoms for one document."""
+from __future__ import annotations
+from dataclasses import dataclass, asdict
+import re
+from . import text as T, loc as L
+
+
+@dataclass
+class Sentence:
+    idx: int
+    para: int
+    start: int
+    end: int
+    text: str
+    loc: bool
+    list_item: bool
+    heading: bool
+    tokens: int = 0
+
+
+def build_sentences(raw: str, count_tokens) -> tuple[str, list[Sentence]]:
+    norm = T.normalize(raw)
+    sents: list[Sentence] = []
+    for pi, (ps, pe) in enumerate(T.paragraphs(norm)):
+        par = norm[ps:pe]
+        li, hd = T.is_list_item(par), T.is_heading(par)
+        for s, e in T.split_sentences(par):
+            txt = re.sub(r'\s+', ' ', par[s:e]).strip()
+            sents.append(Sentence(len(sents), pi, ps + s, ps + e, txt, L.has_anchor(txt), li, hd, count_tokens(txt)))
+    return norm, sents
+
+
+def protected_boundaries(S: list[Sentence]):
+    """prot[j] is True if the boundary between S[j-1] and S[j] is in F. why[j] in {'loc','list','rec'}."""
+    n = len(S)
+    prot, why = [False] * (n + 1), [None] * (n + 1)
+    for j in range(1, n):
+        a, b = S[j - 1], S[j]
+        if b.loc:
+            prot[j], why[j] = True, 'loc'
+        elif a.list_item and b.list_item and b.para == a.para + 1 and not a.loc:
+            prot[j], why[j] = True, 'list'
+    for j in range(1, n):
+        if S[j].loc:
+            k = j - 1
+            while k >= 1 and S[k - 1].para == S[k].para and not S[k - 1].loc:
+                if not prot[k]:
+                    prot[k], why[k] = True, 'rec'
+                k -= 1
+    return prot, why
+
+
+def build_atoms(S: list[Sentence], prot: list[bool]) -> list[list[int]]:
+    if not S:
+        return []
+    atoms, cur = [], [0]
+    for j in range(1, len(S)):
+        if prot[j]:
+            cur.append(j)
+        else:
+            atoms.append(cur)
+            cur = [j]
+    atoms.append(cur)
+    return atoms
+
+
+def loc_pairs(S: list[Sentence]) -> list[dict]:
+    """Ground-truth recommendation-evidence pairs: the LoC sentence and the contiguous recommendation block before it."""
+    pairs = []
+    for j, s in enumerate(S):
+        if s.loc and j > 0 and not S[j - 1].loc:
+            k = j - 1
+            while k >= 1 and S[k - 1].para == S[k].para and not S[k - 1].loc:
+                k -= 1
+            pairs.append(dict(loc=j, adjacent=j - 1, block=list(range(k, j))))
+    return pairs
+
+
+def to_json(norm: str, S: list[Sentence], prot, why, atoms) -> dict:
+    return dict(text=norm, sentences=[asdict(s) for s in S], protected=prot, why=why, atoms=atoms)

@@ -1,0 +1,6 @@
+numpy>=1.26
+pandas>=2.0
+pytest>=8.0
+# for real embeddings (BGE-M3 and the evaluation embedder):
+# sentence-transformers>=3.0
+# torch

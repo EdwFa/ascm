@@ -1,0 +1,16 @@
+{
+  "tau_star": [256, 512, 768],
+  "t_max_factor": 1.5,
+  "lam_b": 0.5,
+  "lam_len": 1.0,
+  "lam_coh": 0.5,
+  "alpha": 0.7,
+  "beta": 0.3,
+  "folds": {
+    "fold1": ["dtc", "mtc"],
+    "fold2": ["colon", "rectal"],
+    "fold3": ["gastric", "esophagus"],
+    "fold4": ["pancreas", "breast"]
+  },
+  "note": "Weights are starting values; tune on the development documents of each fold once the question set exists."
+}

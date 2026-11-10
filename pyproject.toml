@@ -1,0 +1,17 @@
+[project]
+name = "ascm"
+version = "0.1.0"
+description = "Atomic Semantic Chunking Method: exact constrained chunking for medical RAG"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26"]
+
+[project.optional-dependencies]
+bge = ["sentence-transformers>=3.0", "torch", "transformers"]
+dev = ["pytest", "pandas"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
