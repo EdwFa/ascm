@@ -12,6 +12,8 @@ a = ap.parse_args()
 count = tokens.get_counter(a.tokenizer)
 rows, tmax = [], int(1.5 * a.tau)
 for m in csv.DictReader(open(a.manifest, encoding='utf-8')):
+    if m['role'] == 'excluded':
+        print('EXCLUDED:', m['slug']); continue
     if not os.path.exists(m['path']):
         print('SKIP (file missing):', m['slug'], m['path']); continue
     raw = open(m['path'], encoding='utf-8').read()

@@ -15,6 +15,7 @@ ap.add_argument('--proc', default='data/processed'); ap.add_argument('--config',
 ap.add_argument('--embedder', default='hash'); ap.add_argument('--eval-embedder', default='hash4')
 ap.add_argument('--out', default='results'); ap.add_argument('--cache', default='results/cache')
 ap.add_argument('--tau', type=int, nargs='*')
+ap.add_argument('--manifest', default='data/manifest.csv')
 ap.add_argument('--lang', default='all', choices=['all', 'ru', 'en'], help='restrict to documents of one language')
 ap.add_argument('--structure', default='full', choices=['full', 'no_headings', 'flat'],
                 help='hide document structure from the methods (evaluation keeps the real structure)')
@@ -24,9 +25,13 @@ taus = a.tau or cfg['tau_star']
 emb, emb_eval = get_embedder(a.embedder), get_embedder(a.eval_embedder)
 base = dp.Params(tau_star=512, t_max=int(512 * cfg['t_max_factor']), lam_b=cfg['lam_b'], lam_len=cfg['lam_len'],
                  lam_coh=cfg['lam_coh'], alpha=cfg['alpha'], beta=cfg['beta'])
+import csv
+active = {m['slug'] for m in csv.DictReader(open(a.manifest, encoding='utf-8')) if m['role'] != 'excluded'}
 rows = []
 for f in sorted(glob.glob(os.path.join(a.proc, '*.json'))):
     slug = os.path.basename(f)[:-5]
+    if slug not in active:
+        continue          # stale processed file or an excluded document
     d = pipeline.load_document(a.proc, slug)
     if a.lang != 'all' and d.get('meta', {}).get('lang', 'ru') != a.lang:
         continue
