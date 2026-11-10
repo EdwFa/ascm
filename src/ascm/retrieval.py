@@ -45,6 +45,9 @@ def evaluate(q, chunk_spans, chunk_tokens, chunk_vecs, q_vec, budget):
         together = any(all(_cover(g, [chunk_spans[k]]) >= 0.9 for g in gold) and _cover(ev, [chunk_spans[k]]) >= 0.9
                        for k in sel)
         out['evidence_linked'] = float(together)
+        # diagnostic: does ANY chunk hold recommendation + evidence together (chunking quality, independent of ranking)?
+        out['evidence_possible'] = float(any(all(_cover(g, [c]) >= 0.9 for g in gold) and _cover(ev, [c]) >= 0.9
+                                             for c in chunk_spans))
     out['context_precision'] = float(sum(max(0, min(e, b) - max(s, a)) for g in gold for a, b in ranges
                                           for s, e in [g]) / max(sum(b - a for a, b in ranges), 1))
     return out
