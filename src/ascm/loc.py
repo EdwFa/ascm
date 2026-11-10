@@ -37,9 +37,11 @@ def count_matches(text: str) -> tuple[int, int]:
 # kind 'sep'   : the evidence statement starts its own sentence (Russian УУР/УДД line, ASCO '(Evidence quality: ...)', ERAS lines)
 # kind 'inline': the marker sits inside the recommendation sentence (ESMO '[III, A]')
 _ESMO = re.compile(r'\[\s*[IV]{1,3}\s*,\s*[A-E]\s*(?:;[^\]]{0,80})?\]')
-_ASCO = re.compile(r'\(\s*Evidence\s+quality\s*:\s*[A-Za-z ]+;\s*Strength\s+of\s+recommendation\s*:\s*[A-Za-z ]+\)', re.I)
+_ASCO = re.compile(r'\(\s*(?:Type\s*:[^;)]{0,80};\s*)?Evidence\s+quality\s*:\s*[A-Za-z ,/-]+;\s*Strength\s+of\s+recommendation\s*:\s*[A-Za-z ,/-]+\)', re.I)
+# GRADE-style (ATA 2025, EAES/SAGES): '(Strong recommendation, Moderate certainty evidence)', '(Conditional recommendation based on low certainty of evidence)'
+_GRADE = re.compile(r'\(\s*(?:Strong|Conditional|Weak)\s+recommendation\s*(?:,|based\s+on)', re.I)  # opening only: two-column PDFs often cut the closing part
 _ERAS = re.compile(r'(?:Strength of the recommendation|Level of evidence)\s*:', re.I)
-FAMILIES = {'ru_uur': None, 'esmo': _ESMO, 'asco': _ASCO, 'eras': _ERAS, 'none': None}
+FAMILIES = {'ru_uur': None, 'esmo': _ESMO, 'asco': _ASCO, 'eras': _ERAS, 'grade': _GRADE, 'none': None}
 
 
 def evidence_kind(sentence: str, family: str) -> str:

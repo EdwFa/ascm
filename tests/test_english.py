@@ -30,3 +30,10 @@ def test_inline_marker_glues_multisentence_recommendation():
     assert len(joined) == 1 and "extent" in S[joined[0][1]].text
     pairs = A.loc_pairs(S)
     assert len(pairs) == 1 and pairs[0]['kind'] == 'inline'    # the single-sentence recommendation is not a pair
+
+
+def test_asco_with_type_and_grade_markers():
+    s = "Therapy should be offered (Type: evidence based, benefits outweigh harms; Evidence quality: moderate; Strength of recommendation: strong)."
+    assert loc.evidence_kind(s, "asco") == "inline"
+    assert loc.evidence_kind("(Conditional recommendation, Low certainty evidence)", "grade") == "sep"
+    assert loc.evidence_kind("Use MIS (Conditional recommendation based on low certainty of evidence).", "grade") == "inline"
