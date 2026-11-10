@@ -20,6 +20,8 @@ ap.add_argument('--tau', type=int, nargs='*'); ap.add_argument('--budget', type=
 ap.add_argument('--structure', default='full', choices=['full', 'no_headings', 'flat'])
 ap.add_argument('--out', default='results'); ap.add_argument('--cache', default='results/cache')
 ap.add_argument('--methods', nargs='*')
+ap.add_argument('--pool', action='store_true', help='one index over the chunks of ALL selected documents (realistic); default: retrieval inside the question\'s own document')
+ap.add_argument('--pool-docs', default='questions', choices=['questions', 'all'], help='pooled index: only documents that have questions, or every active document of the manifest (distractors)')
 a = ap.parse_args()
 cfg = json.load(open(a.config)); taus = a.tau or cfg['tau_star']
 emb = get_embedder(a.embedder)
@@ -29,31 +31,62 @@ Q = retrieval.load_questions(a.questions)
 by_doc = {}
 for q in Q: by_doc.setdefault(q['doc'], []).append(q)
 rows = []
-for slug, qs in sorted(by_doc.items()):
-    d = pipeline.load_document(a.proc, slug); S = d['sentences']
-    text = open(os.path.join(a.proc, slug + '.txt'), encoding='utf-8').read()
-    E = cached_encode(emb, [s['text'] for s in S], a.cache)
-    qv = cached_encode(emb, [q['question'] for q in qs], a.cache)
-    for tau in taus:
+import csv as _csv
+active = [m['slug'] for m in _csv.DictReader(open('data/manifest.csv', encoding='utf-8')) if m['role'] != 'excluded']
+docs = sorted(set(by_doc) | (set(active) if (a.pool and a.pool_docs == 'all') else set()))
+OFF = 10 ** 9
+cache_doc = {}
+def chunks_for(slug, tau, res_cache={}):
+    d = cache_doc.get(slug)
+    if d is None:
+        d = pipeline.load_document(a.proc, slug)
+        text = open(os.path.join(a.proc, slug + '.txt'), encoding='utf-8').read()
+        E = cached_encode(emb, [x['text'] for x in d['sentences']], a.cache)
+        cache_doc[slug] = d = (d, text, E)
+    return d
+for tau in taus:
+    # per method: chunk spans / tokens / vectors for each document
+    per = {}   # method -> {slug: (spans, toks, CV)}
+    for slug in docs:
+        d, text, E = chunks_for(slug, tau)
+        S = d['sentences']
         res = pipeline.run_methods(pipeline.strip_structure(d, a.structure), tau, base, E, methods=a.methods)
         for m, starts in res.items():
             if m.startswith('_'): continue
             ends = list(starts[1:]) + [len(S)]
             spans = [(S[i]['start'], S[j - 1]['end']) for i, j in zip(starts, ends)]
             toks = [sum(S[k]['tokens'] for k in range(i, j)) for i, j in zip(starts, ends)]
-            CV = cached_encode(emb, [text[s:e] for s, e in spans], a.cache)
+            CV = cached_encode(emb, [text[x:y] for x, y in spans], a.cache)
+            per.setdefault(m, {})[slug] = (spans, toks, CV)
+    print('tau', tau, 'chunked', len(docs), 'docs', flush=True)
+    for m, dd in per.items():
+        if a.pool:
+            order = sorted(dd); k_of = {sl: n for n, sl in enumerate(order)}
+            P_sp = [(x + k_of[sl] * OFF, y + k_of[sl] * OFF) for sl in order for x, y in dd[sl][0]]
+            P_tk = [t for sl in order for t in dd[sl][1]]
+            P_cv = np.vstack([dd[sl][2] for sl in order])
+        for slug, qs in sorted(by_doc.items()):
+            spans, toks, CV = dd[slug]
+            qv = cached_encode(emb, [q['question'] for q in qs], a.cache)
+            mean_tok = float(np.mean(toks))
             for qi, q in enumerate(qs):
                 for b in a.budget:
-                    r = retrieval.evaluate(q, spans, toks, CV, qv[qi], b)
-                    r.update(doc=slug, qid=q['id'], qtype=q['type'], method=m, tau=tau, budget=b, structure=a.structure)
+                    if a.pool:
+                        o = k_of[slug] * OFF
+                        qq = dict(q, gold_spans=[[g0 + o, g1 + o] for g0, g1 in q['gold_spans']],
+                                  evidence_span=[q['evidence_span'][0] + o, q['evidence_span'][1] + o] if q.get('evidence_span') else None)
+                        r = retrieval.evaluate(qq, P_sp, P_tk, P_cv, qv[qi], b)
+                    else:
+                        r = retrieval.evaluate(q, spans, toks, CV, qv[qi], b)
+                    r.update(doc=slug, qid=q['id'], qtype=q['type'], method=m, tau=tau, budget=b, structure=a.structure,
+                             mean_chunk_tok=mean_tok, pooled=a.pool)
                     rows.append(r)
-    print('done', slug, flush=True)
 df = pd.DataFrame(rows)
 os.makedirs(a.out, exist_ok=True)
-sfx = '' if a.structure == 'full' else '_' + a.structure
+sfx = ('' if a.structure == 'full' else '_' + a.structure) + ('_pool' if a.pool else '')
 df.to_csv(os.path.join(a.out, f'retrieval_questions{sfx}.csv'), index=False)
 
-mets = ['evidence_linked', 'evidence_possible', 'hit', 'span_recall', 'mrr', 'context_precision', 'context_tokens']
+mets = ['mean_chunk_tok', 'evidence_linked', 'evidence_possible', 'hit', 'span_recall', 'mrr', 'context_precision', 'context_tokens']
 doc_mean = df.groupby(['tau', 'budget', 'method', 'doc'])[[x for x in mets if x in df]].mean().reset_index()
 summ, tests = [], []
 for (tau, b), g in doc_mean.groupby(['tau', 'budget']):
@@ -82,5 +115,5 @@ summ.to_csv(os.path.join(a.out, f'retrieval_summary{sfx}.csv'), index=False)
 pd.DataFrame(tests).to_csv(os.path.join(a.out, f'retrieval_tests{sfx}.csv'), index=False)
 pd.set_option('display.width', 200)
 show = summ.sort_values(['tau', 'budget', 'method'])
-print(show[['tau', 'budget', 'method', 'n_docs', 'n_questions', 'evidence_possible', 'evidence_linked', 'hit', 'mrr', 'context_precision']].round(3).to_string(index=False))
+print(show[['tau', 'budget', 'method', 'n_docs', 'n_questions', 'mean_chunk_tok', 'evidence_possible', 'evidence_linked', 'hit', 'mrr', 'context_precision']].round(3).to_string(index=False))
 print('\nIMPORTANT: question set is', os.path.basename(a.questions), '- check its source (synthetic vs physician) before quoting any number.')
