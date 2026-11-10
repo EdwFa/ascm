@@ -43,7 +43,7 @@ df = pd.DataFrame(rows)
 df.to_csv(os.path.join(a.out, 'chunk_metrics.csv'), index=False)
 
 # summary: mean over documents with cluster bootstrap CI; paired permutation ASCM vs each baseline (Holm per metric/tau)
-metrics = ['n_chunks', 'mean_tok', 'erl_adjacent', 'erl_block', 'list_split', 'f_violations', 'scs',
+metrics = ['n_chunks', 'mean_tok', 'median_tok', 'p5_tok', 'p95_tok', 'cv_tok', 'small_lt100', 'erl_adjacent', 'erl_block', 'list_split', 'f_violations', 'scs',
            'sec_cross', 'section_cut', 'comment_sep']
 summ = []
 for tau, g in df.groupby('tau'):

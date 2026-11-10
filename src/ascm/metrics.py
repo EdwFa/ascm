@@ -19,8 +19,9 @@ def chunk_of(starts, n):
 def size_stats(starts, tokens, t_max, atoms_exceptions=0):
     sz = np.array([sum(tokens[a:b]) for a, b in chunks(starts, len(tokens))])
     return dict(n_chunks=len(sz), mean_tok=float(sz.mean()), median_tok=float(np.median(sz)),
-                max_tok=int(sz.max()), over_tmax=int((sz > t_max).sum()),
-                small_lt64=float((sz < 64).mean()))
+                p5_tok=float(np.percentile(sz, 5)), p95_tok=float(np.percentile(sz, 95)),
+                cv_tok=float(sz.std() / sz.mean()), max_tok=int(sz.max()), over_tmax=int((sz > t_max).sum()),
+                small_lt64=float((sz < 64).mean()), small_lt100=float((sz < 100).mean()))
 
 
 def erl(starts, pairs, n):
