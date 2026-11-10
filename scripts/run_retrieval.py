@@ -10,7 +10,7 @@ Paper run:     python scripts/run_retrieval.py --embedder bge-m3 --questions res
 import argparse, json, os, sys
 import numpy as np, pandas as pd
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
-from ascm import pipeline, dp, stats, retrieval
+from ascm import pipeline, dp, stats, retrieval, bm25
 from ascm.embed import get_embedder, cached_encode
 
 ap = argparse.ArgumentParser()
@@ -20,6 +20,7 @@ ap.add_argument('--tau', type=int, nargs='*'); ap.add_argument('--budget', type=
 ap.add_argument('--structure', default='full', choices=['full', 'no_headings', 'flat'])
 ap.add_argument('--out', default='results'); ap.add_argument('--cache', default='results/cache')
 ap.add_argument('--methods', nargs='*')
+ap.add_argument('--retriever', default='dense', choices=['dense', 'bm25', 'hybrid'], help='hybrid = reciprocal rank fusion (k=60) of dense and BM25, same for every chunker')
 ap.add_argument('--pool', action='store_true', help='one index over the chunks of ALL selected documents (realistic); default: retrieval inside the question\'s own document')
 ap.add_argument('--pool-docs', default='questions', choices=['questions', 'all'], help='pooled index: only documents that have questions, or every active document of the manifest (distractors)')
 a = ap.parse_args()
@@ -30,6 +31,13 @@ base = dp.Params(tau_star=512, t_max=int(512 * cfg['t_max_factor']), lam_b=cfg['
 Q = retrieval.load_questions(a.questions)
 by_doc = {}
 for q in Q: by_doc.setdefault(q['doc'], []).append(q)
+def fuse(CV, qvec, bm, qtext):
+    dense = CV @ qvec
+    if a.retriever == 'dense': return dense
+    lex = bm.scores(qtext)
+    return lex if a.retriever == 'bm25' else bm25.rrf([dense, lex])
+
+
 rows = []
 import csv as _csv
 active = [m['slug'] for m in _csv.DictReader(open('data/manifest.csv', encoding='utf-8')) if m['role'] != 'excluded']
@@ -57,7 +65,7 @@ for tau in taus:
             spans = [(S[i]['start'], S[j - 1]['end']) for i, j in zip(starts, ends)]
             toks = [sum(S[k]['tokens'] for k in range(i, j)) for i, j in zip(starts, ends)]
             CV = cached_encode(emb, [text[x:y] for x, y in spans], a.cache)
-            per.setdefault(m, {})[slug] = (spans, toks, CV)
+            per.setdefault(m, {})[slug] = (spans, toks, CV, [text[x:y] for x, y in spans])
     print('tau', tau, 'chunked', len(docs), 'docs', flush=True)
     for m, dd in per.items():
         if a.pool:
@@ -65,8 +73,11 @@ for tau in taus:
             P_sp = [(x + k_of[sl] * OFF, y + k_of[sl] * OFF) for sl in order for x, y in dd[sl][0]]
             P_tk = [t for sl in order for t in dd[sl][1]]
             P_cv = np.vstack([dd[sl][2] for sl in order])
+            P_tx = [t for sl in order for t in dd[sl][3]]
+            P_bm = bm25.BM25(P_tx) if a.retriever != 'dense' else None
         for slug, qs in sorted(by_doc.items()):
-            spans, toks, CV = dd[slug]
+            spans, toks, CV, tx = dd[slug]
+            D_bm = bm25.BM25(tx) if (a.retriever != 'dense' and not a.pool) else None
             qv = cached_encode(emb, [q['question'] for q in qs], a.cache)
             mean_tok = float(np.mean(toks))
             for qi, q in enumerate(qs):
@@ -75,15 +86,17 @@ for tau in taus:
                         o = k_of[slug] * OFF
                         qq = dict(q, gold_spans=[[g0 + o, g1 + o] for g0, g1 in q['gold_spans']],
                                   evidence_span=[q['evidence_span'][0] + o, q['evidence_span'][1] + o] if q.get('evidence_span') else None)
-                        r = retrieval.evaluate(qq, P_sp, P_tk, P_cv, qv[qi], b)
+                        sc = fuse(P_cv, qv[qi], P_bm, q['question'])
+                        r = retrieval.evaluate(qq, P_sp, P_tk, P_cv, qv[qi], b, sc)
                     else:
-                        r = retrieval.evaluate(q, spans, toks, CV, qv[qi], b)
+                        sc = fuse(CV, qv[qi], D_bm, q['question'])
+                        r = retrieval.evaluate(q, spans, toks, CV, qv[qi], b, sc)
                     r.update(doc=slug, qid=q['id'], qtype=q['type'], method=m, tau=tau, budget=b, structure=a.structure,
                              mean_chunk_tok=mean_tok, pooled=a.pool)
                     rows.append(r)
 df = pd.DataFrame(rows)
 os.makedirs(a.out, exist_ok=True)
-sfx = ('' if a.structure == 'full' else '_' + a.structure) + ('_pool' if a.pool else '')
+sfx = ('' if a.structure == 'full' else '_' + a.structure) + ('_pool' if a.pool else '') + ('' if a.retriever == 'dense' else '_' + a.retriever)
 df.to_csv(os.path.join(a.out, f'retrieval_questions{sfx}.csv'), index=False)
 
 mets = ['mean_chunk_tok', 'evidence_linked', 'evidence_possible', 'hit', 'span_recall', 'mrr', 'context_precision', 'context_tokens']

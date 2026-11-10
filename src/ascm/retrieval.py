@@ -21,9 +21,9 @@ def _cover(span, ranges):
     return got / max(e - s, 1)
 
 
-def evaluate(q, chunk_spans, chunk_tokens, chunk_vecs, q_vec, budget):
+def evaluate(q, chunk_spans, chunk_tokens, chunk_vecs, q_vec, budget, scores=None):
     """chunk_spans: [(start,end)] char spans of chunks; returns metrics for one question."""
-    order = np.argsort(-(chunk_vecs @ q_vec))
+    order = np.argsort(-(chunk_vecs @ q_vec if scores is None else scores), kind='stable')
     sel, used = [], 0
     for k in order:
         if used + chunk_tokens[k] > budget and sel:
