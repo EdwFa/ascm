@@ -63,3 +63,11 @@ def unit_mean(vecs: np.ndarray) -> np.ndarray:
     m = vecs.mean(axis=0)
     n = np.linalg.norm(m)
     return m / n if n > 1e-9 else m
+
+
+def center(E: np.ndarray) -> np.ndarray:
+    """Subtract the document mean and renormalise. Guideline sentences share a large common component, which makes raw
+    cosines uniformly high; centring restores the contrast between weak and strong links."""
+    C = E - E.mean(axis=0, keepdims=True)
+    n = np.linalg.norm(C, axis=1, keepdims=True)
+    return C / np.maximum(n, 1e-9)

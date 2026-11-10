@@ -52,3 +52,23 @@ def is_list_item(par: str) -> bool:
 
 def is_heading(par: str) -> bool:
     return bool(_HEADING.match(par)) and len(par) < 160
+
+
+_SEC_MULTI = re.compile(r'^\s*(\d+(?:\.\d+)+)\.?\s+[А-ЯЁA-Z]')
+_SEC_TOP = re.compile(r'^\s*(\d{1,2})\.\s+(?:Краткая информация|Диагностика|Лечение|Реабилитация|Профилактика|'
+                      r'Организация оказания|Дополнительная информация|Критерии оценки)', re.I)
+
+
+def section_level(par: str) -> int:
+    """Depth of a section heading at the paragraph start: '2.' -> 1, '2.1.' -> 2, '2.1.3.' -> 3; 0 if not a heading.
+    Headings are often glued to the first sentence of the section, so long paragraphs are accepted for multi-level numbers."""
+    m = _SEC_MULTI.match(par)
+    if m:
+        return m.group(1).count('.') + 1
+    if len(par) < 120 and _SEC_TOP.match(par):
+        return 1
+    return 0
+
+
+def is_comment(par: str) -> bool:
+    return par.lstrip().lower().startswith('комментари')

@@ -43,7 +43,8 @@ df = pd.DataFrame(rows)
 df.to_csv(os.path.join(a.out, 'chunk_metrics.csv'), index=False)
 
 # summary: mean over documents with cluster bootstrap CI; paired permutation ASCM vs each baseline (Holm per metric/tau)
-metrics = ['n_chunks', 'mean_tok', 'erl_adjacent', 'erl_block', 'list_split', 'f_violations', 'scs']
+metrics = ['n_chunks', 'mean_tok', 'erl_adjacent', 'erl_block', 'list_split', 'f_violations', 'scs',
+           'sec_cross', 'section_cut', 'comment_sep']
 summ = []
 for tau, g in df.groupby('tau'):
     for m, gm in g.groupby('method'):
@@ -56,7 +57,7 @@ summ = pd.DataFrame(summ)
 tests = []
 for tau, g in df.groupby('tau'):
     asc = g[g.method == 'ASCM'].sort_values('doc')
-    for k in ['erl_block', 'scs']:
+    for k in ['erl_block', 'scs', 'sec_cross', 'comment_sep']:
         ps, names = [], []
         for m in g.method.unique():
             if m == 'ASCM': continue
@@ -68,4 +69,4 @@ for tau, g in df.groupby('tau'):
 summ.to_csv(os.path.join(a.out, 'summary.csv'), index=False)
 pd.DataFrame(tests).to_csv(os.path.join(a.out, 'tests.csv'), index=False)
 pd.set_option('display.width', 200)
-print(summ[summ.tau == 512][['method', 'n_chunks', 'mean_tok', 'erl_adjacent', 'erl_block', 'list_split', 'f_violations', 'scs']].round(3).to_string(index=False))
+print(summ[summ.tau == 512][['method', 'n_chunks', 'mean_tok', 'erl_block', 'list_split', 'scs', 'sec_cross', 'section_cut', 'comment_sep']].round(3).to_string(index=False))

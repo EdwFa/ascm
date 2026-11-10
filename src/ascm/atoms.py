@@ -16,6 +16,8 @@ class Sentence:
     list_item: bool
     heading: bool
     tokens: int = 0
+    sec_level: int = 0
+    comment: bool = False
 
 
 def build_sentences(raw: str, count_tokens) -> tuple[str, list[Sentence]]:
@@ -24,9 +26,13 @@ def build_sentences(raw: str, count_tokens) -> tuple[str, list[Sentence]]:
     for pi, (ps, pe) in enumerate(T.paragraphs(norm)):
         par = norm[ps:pe]
         li, hd = T.is_list_item(par), T.is_heading(par)
+        lvl, com = T.section_level(par), T.is_comment(par)
+        first = True
         for s, e in T.split_sentences(par):
             txt = re.sub(r'\s+', ' ', par[s:e]).strip()
-            sents.append(Sentence(len(sents), pi, ps + s, ps + e, txt, L.has_anchor(txt), li, hd, count_tokens(txt)))
+            sents.append(Sentence(len(sents), pi, ps + s, ps + e, txt, L.has_anchor(txt), li, hd, count_tokens(txt),
+                                  lvl if first else 0, com if first else False))
+            first = False
     return norm, sents
 
 

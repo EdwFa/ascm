@@ -13,7 +13,7 @@
 python -m pip install -r requirements.txt
 python scripts/build_corpus.py                         # предложения, F, атомы -> data/processed, results/corpus_stats.csv
 python -m pytest -q
-# 35 тестов, в т.ч. ДП = полный перебор
+# 39 тестов, в т.ч. ДП = полный перебор
 python scripts/run_experiment.py                       # отладка: офлайн-эмбеддинги hash (НЕ для статьи)
 python scripts/make_seed_passages.py                   # заготовки для врачей -> results/annotation/
 ```
@@ -40,6 +40,17 @@ python scripts/run_experiment.py --embedder bge-m3 --eval-embedder e5
 | `src/ascm/stats.py` | кластерный бутстрап по документам, перестановочный тест, поправка Холма |
 | `src/ascm/retrieval.py` | span recall, Hit, MRR, evidence-linked recall (когда будут вопросы) |
 | `configs/default.json` | веса Φ, τ\*, T_max, 4 фолда по документам |
+
+## Варианты ASCM
+
+| Метод | Эмбеддинги для C_sem и P_coh | Структурная стоимость границы |
+|---|---|---|
+| `ASCM_basic` | исходные | 0 на границе абзаца, 1 внутри абзаца |
+| `ASCM_struct` | исходные | иерархическая: начало раздела дёшево (по глубине), отрыв блока «Комментарии» дорог (0,8), обычный абзац 0,5, абзац после законченной рекомендации 0,3 |
+| `ASCM_center` | центрированные (вычтено среднее по документу) | как в basic |
+| `ASCM` | центрированные | иерархическая |
+
+`B7_greedy` использует ту же Φ, что и полный `ASCM`. Метрики `sec_cross`, `section_cut`, `comment_sep` частично оптимизируются иерархической стоимостью по построению, поэтому они не доказывают выигрыш в поиске.
 
 ## Что сделано и что нет
 

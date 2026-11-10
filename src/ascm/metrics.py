@@ -59,3 +59,22 @@ def scs(starts, E_eval):
         tot += float((E_eval[a:b] @ m).sum())
         cnt += b - a
     return tot / max(cnt, 1)
+
+
+def structure_metrics(starts, S):
+    """sec_cross: share of chunks that contain a section start (depth <= 2) other than at their first sentence
+    (a chunk that straddles two sections; lower is better).
+    section_cut: share of chunk starts that are section starts (higher = cuts follow the document structure).
+    comment_sep: share of 'Комментарии' blocks that begin a chunk, i.e. were separated from their recommendation.
+    These depend on the same structure signal as the hierarchical cost, so they are partly optimised by construction."""
+    n = len(S)
+    bounds = chunks(starts, n)
+    sec = [i for i, s in enumerate(S) if 0 < s.get('sec_level', 0) <= 2]
+    cross = sum(1 for a, b in bounds if any(a < i < b for i in sec))
+    sset = set(sec)
+    cuts = [a for a, _ in bounds if a > 0]
+    com = [i for i, s in enumerate(S) if s.get('comment') and i > 0]
+    cset = set(starts)
+    return dict(sec_cross=cross / max(len(bounds), 1),
+                section_cut=(sum(1 for a in cuts if a in sset) / len(cuts)) if cuts else float('nan'),
+                comment_sep=(sum(1 for i in com if i in cset) / len(com)) if com else float('nan'))
